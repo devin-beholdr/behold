@@ -120,6 +120,7 @@ def determine_compatiable_encoding(byte_data: bytes, string_data: str) -> str:
         try:
             decoded_data = byte_data.decode(encoding)
             string_data.encode(encoding=encoding)
+            return encoding
         except UnicodeDecodeError:
             continue
         except UnicodeEncodeError:
@@ -134,17 +135,32 @@ def encode_string_to_bytes(string_to_encode: str, encoding: str) -> bytes:
 
 def check_website_for_user(site: Site, username: str) -> bool:
     request_url: str = site.user_url.format(username)
-    if site.main_url.__eq__("http://forum.3dnews.ru/"):
+    headers = headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
+    }
+    try:
+        response = requests.get(request_url, timeout=1, headers=headers)
+    except requests.exceptions.ReadTimeout:
+        return False
 
-        response = requests.get(request_url, timeout=1)
-        temp2 = site.error_message.encode('latin1')
-        encoding: str = determine_compatiable_encoding(response.content, site.error_message)
-        temp: bool = response.content.__contains__(encoded_error_message)
-        temp1 = 1
-#         TODO: Research how alred checks sites content.
+    # if "instagram" != parse_url_domain(site.main_url):
+    #     return False
+    if response.status_code == 404:
+        return False
+    # If a Site error message is set, check it's existence in response
+    if site.error_message:
+        if site.error_message.encode(response.encoding) in response.content:
+            return True
+    if response.status_code == 200:
+        return True
+    return False
+
 
 
 env_setup()
-sites = generate_site_objects()
+sites: List[Site] = generate_site_objects()
 for site in sites:
-    check_website_for_user(site, "dogle")
+    username = "dogle"
+    user_found: bool = check_website_for_user(site, username)
+    site.users_found.append(username)
+    print(site.user_url.format(username) + " : {}".format(user_found))
