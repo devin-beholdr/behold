@@ -1,0 +1,5 @@
+{
+  "sites_json_filepath": "resources/siteList.json",
+  "sites_nsfw_json_filepath": "resources/sitesNSFW.json",
+  "common_encodings": ["UTF-8", "ISO-8859-1", "UTF-16", "UTF-32", "ASCII", "Windows-1252", "EUC-JP", "Shift JIS", "GBK", "GB2312", "KOI8-R", "KOI8-U"]
+}
