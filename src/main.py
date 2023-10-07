@@ -145,8 +145,6 @@ def check_website_for_user(site: Site, username: str) -> bool:
     headers = headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
     }
-    if site.user_url == "https://prog.hu/azonosito/info/{}":
-        temp2 = 1
     try:
         response = requests.get(request_url, timeout=1, headers=headers)
     except requests.exceptions.ReadTimeout:
@@ -158,8 +156,6 @@ def check_website_for_user(site: Site, username: str) -> bool:
     except requests.exceptions.RequestException:
         return False
 
-    # if "instagram" != parse_url_domain(site.main_url):
-    #     return False
     if response.status_code == 404:
         return False
     # If a Site error message is set, check its existence in response
@@ -189,7 +185,8 @@ def cli():
 
 
 def parse_nsfw_arg(nsfw_string: str) -> bool:
-
+    if not nsfw_string:
+        return False
     if nsfw_string.lower() == "true":
         return True
     else:
@@ -246,7 +243,6 @@ def main():
     # Store results
     if output_filepath:
         generate_search_results_csv(sites, filepath=output_filepath)
-    temp2 = 1
 
 
 def generate_search_results_csv(sites: List[Site], filepath: str) -> None:
@@ -289,16 +285,6 @@ def execute_search(sites: List[Site], username: str, results_queue: Queue) -> Li
         results_queue.put(temp_result_string)
     return sites
 
-    temp2 = 2
-
 if __name__ == "__main__":
     env_setup()
     main()
-
-# env_setup()
-# sites: List[Site] = generate_site_objects()
-# for site in sites:
-#     username = "dogle"
-#     user_found: bool = check_website_for_user(site, username)
-#     site.users_found.append(username)
-#     print(site.user_url.format(username) + " : {}".format(user_found))
