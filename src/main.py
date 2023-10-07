@@ -176,7 +176,7 @@ def cli():
     parser.add_argument("--nsfw", help="true/false: Include NSFW websites in search.", required=False)
     parser.add_argument("--output_filepath", help="string: The filepath to save the results of the search as csv.",
                         required=False)
-    parser.add_argument("--threads", help="int: Number of threads to run for threading.",
+    parser.add_argument("--threads", help="int: Number of threads to run for threading. Defaults to 1.",
                         required=False)
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -194,6 +194,8 @@ def parse_nsfw_arg(nsfw_string: str) -> bool:
 
 
 def parse_threads_arg(threads: str) -> int:
+    if not threads:
+        return 1
     try:
         return int(threads)
     except ValueError:
@@ -225,7 +227,7 @@ def main():
     results_queue: Queue = queue.Queue()
     results: List = []
     # Search Websites
-    if threads_arg:
+    if threads_arg > 1:
         threads = []
         site_groups: List[List[Site]] = split_sites_into_groups(sites=sites,threads=threads_arg)
         for site_group in site_groups:
