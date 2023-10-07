@@ -91,7 +91,7 @@ def generate_site_objects(nsfw: bool) -> List[Site]:
             )
         except pydantic.ValidationError as e:
             continue
-        if temp_site.nsfw and nsfw is False:
+        if temp_site.nsfw is True and nsfw is False:
             continue
         sites.append(temp_site)
 
