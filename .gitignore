@@ -3,3 +3,4 @@ venv
 .idea
 behold.egg-info
 build
+temp.csv

@@ -76,18 +76,18 @@ def generate_site_objects(nsfw: bool) -> List[Site]:
     sites_nsfw_dict = generate_site_nsfw_lookup_dict()
     sites: List[Site] = []
     for site, data in sites_json.items():
-        temp_url = data.get("urlMain", None)
+        temp_url = data.get("main_url", None)
         temp_nsfw = sites_nsfw_dict.get(parse_url_domain(temp_url), None)
         try:
             temp_site = Site(
                 name=site,
-                user_url=data.get("url", None),
+                user_url=data.get("user_url", None),
                 main_url=temp_url,
-                error_url=data.get("errorUrl", None),
-                error_type=data.get("errorType", None),
+                error_url=data.get("error_url", None),
+                error_type=data.get("error_type", None),
                 users_found=False,
                 nsfw=temp_nsfw,
-                error_message=data.get("errorMsg", None)
+                error_message=data.get("error_message", None)
             )
         except pydantic.ValidationError as e:
             continue
@@ -145,6 +145,8 @@ def check_website_for_user(site: Site, username: str) -> bool:
     headers = headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
     }
+    if site.user_url == "https://prog.hu/azonosito/info/{}":
+        temp2 = 1
     try:
         response = requests.get(request_url, timeout=1, headers=headers)
     except requests.exceptions.ReadTimeout:
@@ -163,7 +165,7 @@ def check_website_for_user(site: Site, username: str) -> bool:
     # If a Site error message is set, check its existence in response
     if site.error_message:
         if site.error_message.encode(response.encoding) in response.content:
-            return True
+            return False
     if response.status_code == 200:
         return True
     return False
@@ -202,14 +204,30 @@ def parse_threads_arg(threads: str) -> int:
     except TypeError:
         raise ValueError("The \"threads\" arg must be an integer.")
 
+
+def parse_filepath_arg(filepath: str) -> str:
+    if not filepath:
+        return ""
+
+    file = open(filepath, 'w')
+    file.close()
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    return filepath
+
+
 def main():
     args: Namespace = cli()
     username: str = args.username
     nsfw: bool = parse_nsfw_arg(args.nsfw)
-    sites: List[Site] = generate_site_objects(nsfw)
     threads_arg: int = parse_threads_arg(args.threads)
+    output_filepath: str = parse_filepath_arg(args.output_filepath)
+
+    sites: List[Site] = generate_site_objects(nsfw)
+
     results_queue: Queue = queue.Queue()
     results: List = []
+    # Search Websites
     if threads_arg:
         threads = []
         site_groups: List[List[Site]] = split_sites_into_groups(sites=sites,threads=threads_arg)
@@ -225,12 +243,13 @@ def main():
     while not results_queue.empty():
         result = results_queue.get()
         results.append(result)
-    # TODO: Finish implementing saving results to csv.
-    generate_search_results_csv(sites, "")
+    # Store results
+    if output_filepath:
+        generate_search_results_csv(sites, filepath=output_filepath)
     temp2 = 1
 
+
 def generate_search_results_csv(sites: List[Site], filepath: str) -> None:
-    filepath: str = "/Users/lesliewhiddon/Documents/devin_code/Behold/src/temp.csv"
     site_dict_list: List[dict] = []
     for site in sites:
         site_dict_list.append(site.model_dump())
