@@ -1,13 +1,18 @@
+import csv
 import json
 import os
+import queue
 import re
+import threading
+from queue import Queue
 
 import pydantic
 import requests
-import argparse
 
 from typing import List, Match
-from Behold.src.models.site import Site
+from argparse import Namespace, ArgumentParser
+
+from src.models.site import Site
 
 def env_setup() -> None:
     os.environ['CONFIG_FILEPATH'] = "config/config.json"
@@ -62,7 +67,7 @@ def parse_url_domain(url: str) -> str:
     return result
 
 
-def generate_site_objects() -> List[Site]:
+def generate_site_objects(nsfw: bool) -> List[Site]:
     """
         Convert the json list of site information into a list of Site objects.
     """
@@ -80,11 +85,13 @@ def generate_site_objects() -> List[Site]:
                 main_url=temp_url,
                 error_url=data.get("errorUrl", None),
                 error_type=data.get("errorType", None),
-                users_found=[],
+                users_found=False,
                 nsfw=temp_nsfw,
                 error_message=data.get("errorMsg", None)
             )
         except pydantic.ValidationError as e:
+            continue
+        if temp_site.nsfw and nsfw is False:
             continue
         sites.append(temp_site)
 
@@ -114,7 +121,7 @@ def determine_encoding_used_for_content(data: bytes) -> str:
         except UnicodeDecodeError:
             continue
 
-def determine_compatiable_encoding(byte_data: bytes, string_data: str) -> str:
+def determine_compatible_encoding(byte_data: bytes, string_data: str) -> str:
     encodings: json = load_config()["common_encodings"]
     for encoding in encodings:
         try:
@@ -142,12 +149,18 @@ def check_website_for_user(site: Site, username: str) -> bool:
         response = requests.get(request_url, timeout=1, headers=headers)
     except requests.exceptions.ReadTimeout:
         return False
+    except requests.exceptions.ConnectTimeout:
+        return False
+    except requests.exceptions.ConnectionError:
+        return False
+    except requests.exceptions.RequestException:
+        return False
 
     # if "instagram" != parse_url_domain(site.main_url):
     #     return False
     if response.status_code == 404:
         return False
-    # If a Site error message is set, check it's existence in response
+    # If a Site error message is set, check its existence in response
     if site.error_message:
         if site.error_message.encode(response.encoding) in response.content:
             return True
@@ -158,33 +171,109 @@ def check_website_for_user(site: Site, username: str) -> bool:
 
 def cli():
     # Create a parser object
-    parser = argparse.ArgumentParser(description="A simple command-line parser")
+    parser = ArgumentParser(description="A simple command-line parser")
 
     # Add command-line arguments
     parser.add_argument("--username", help="String: The username to search for.", required=True)
     parser.add_argument("--nsfw", help="true/false: Include NSFW websites in search.", required=False)
     parser.add_argument("--output_filepath", help="string: The filepath to save the results of the search as csv.",
                         required=False)
-
+    parser.add_argument("--threads", help="int: Number of threads to run for threading.",
+                        required=False)
     # Parse the command-line arguments
     args = parser.parse_args()
 
-    # Access the values of the arguments
-    username: str = args.username
-    nsfw: bool = args.nsfw
-    output_filepath: str = args.output_filepath
+    return args
 
-    # Perform some operation (in this example, we'll just print the input and output paths)
-    # TODO: Setup parsing these commands into calling functions.
-    print(f"username file: {username}")
-    print(f"nsfw file: {nsfw}")
-    print(f"output_filepath file: {output_filepath}")
+
+def parse_nsfw_arg(nsfw_string: str) -> bool:
+
+    if nsfw_string.lower() == "true":
+        return True
+    else:
+        return False
+
+
+def parse_threads_arg(threads: str) -> int:
+    try:
+        return int(threads)
+    except ValueError:
+        raise ValueError("The \"threads\" arg must be an integer.")
+    except TypeError:
+        raise ValueError("The \"threads\" arg must be an integer.")
 
 def main():
-    cli()
+    args: Namespace = cli()
+    username: str = args.username
+    nsfw: bool = parse_nsfw_arg(args.nsfw)
+    sites: List[Site] = generate_site_objects(nsfw)
+    threads_arg: int = parse_threads_arg(args.threads)
+    results_queue: Queue = queue.Queue()
+    results: List = []
+    if threads_arg:
+        threads = []
+        site_groups: List[List[Site]] = split_sites_into_groups(sites=sites,threads=threads_arg)
+        for site_group in site_groups:
+            thread = threading.Thread(target=execute_search, args=(site_group, username, results_queue))
+            threads.append(thread)
+            thread.start()
+        for thread in threads:
+            thread.join()
+    else:
+        sites = execute_search(sites=sites, username=username, results_queue=results_queue)
+    # Collect results
+    while not results_queue.empty():
+        result = results_queue.get()
+        results.append(result)
+    # TODO: Finish implementing saving results to csv.
+    generate_search_results_csv(sites, "")
+    temp2 = 1
 
+def generate_search_results_csv(sites: List[Site], filepath: str) -> None:
+    filepath: str = "/Users/lesliewhiddon/Documents/devin_code/Behold/src/temp.csv"
+    site_dict_list: List[dict] = []
+    for site in sites:
+        site_dict_list.append(site.model_dump())
+
+    fieldnames = site_dict_list[0].keys()
+
+    with open(filepath, mode="w", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for item in site_dict_list:
+            writer.writerow(item)
+
+
+def split_sites_into_groups(threads: int, sites: List[Site]) -> List[List[Site]]:
+    sub_list_length = len(sites) // threads
+    split_lists = []
+
+    for i in range(0, len(sites), sub_list_length):
+        sub_list = sites[i:i + sub_list_length]
+        split_lists.append(sub_list)
+
+    return split_lists
+
+def execute_search(sites: List[Site], username: str, results_queue: Queue) -> List[Site]:
+    result_string = "[{}] | {}"
+    for site in sites:
+        found: bool = check_website_for_user(site=site, username=username)
+        user_url: str = site.user_url.format(username)
+        temp_result_string: str = ""
+        if found:
+            temp_result_string = result_string.format("+", user_url)
+            site.users_found = True
+        else:
+            temp_result_string = result_string.format("-", user_url)
+        print(temp_result_string)
+        results_queue.put(temp_result_string)
+    return sites
+
+    temp2 = 2
 
 if __name__ == "__main__":
+    env_setup()
     main()
 
 # env_setup()
