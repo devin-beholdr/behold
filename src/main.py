@@ -176,6 +176,7 @@ def cli():
     output_filepath: str = args.output_filepath
 
     # Perform some operation (in this example, we'll just print the input and output paths)
+    # TODO: Setup parsing these commands into calling functions.
     print(f"username file: {username}")
     print(f"nsfw file: {nsfw}")
     print(f"output_filepath file: {output_filepath}")
