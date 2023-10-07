@@ -8,6 +8,7 @@ setup(
     name="behold",
     version="0.1",
     packages=find_packages(),
+    package_data={'behold': ['behold/src/resources/*.json', 'src/config/*.json']},
     install_requires=[
         required_packages
     ],
