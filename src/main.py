@@ -6,9 +6,8 @@ import pydantic
 import requests
 import argparse
 
-from .models.site import Site
 from typing import List, Match
-
+from Behold.src.models.site import Site
 
 def env_setup() -> None:
     os.environ['CONFIG_FILEPATH'] = "config/config.json"
