@@ -7,7 +7,8 @@ with open('requirements.txt') as f:
 setup(
     name="behold",
     version="0.1",
-    packages=find_packages(include=['src', 'src.config.*']),
+    packages=find_packages(),
+    package_data={'src': ['config/*.json', 'resources/*.json']},
     include_package_data=True,
     install_requires=[
         required_packages
