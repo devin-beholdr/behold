@@ -7,8 +7,7 @@ with open('requirements.txt') as f:
 setup(
     name="behold",
     version="0.1",
-    packages=find_packages(),
-    package_data={'behold': ['src/resources/siteList.json', 'src/config/*.json']},
+    packages=find_packages(include=['src', 'src.config.*']),
     include_package_data=True,
     install_requires=[
         required_packages
