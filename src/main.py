@@ -4,8 +4,9 @@ import re
 
 import pydantic
 import requests
+import argparse
 
-from models.site import Site
+from .models.site import Site
 from typing import List, Match
 
 
@@ -156,11 +157,40 @@ def check_website_for_user(site: Site, username: str) -> bool:
     return False
 
 
+def cli():
+    # Create a parser object
+    parser = argparse.ArgumentParser(description="A simple command-line parser")
 
-env_setup()
-sites: List[Site] = generate_site_objects()
-for site in sites:
-    username = "dogle"
-    user_found: bool = check_website_for_user(site, username)
-    site.users_found.append(username)
-    print(site.user_url.format(username) + " : {}".format(user_found))
+    # Add command-line arguments
+    parser.add_argument("--username", help="String: The username to search for.", required=True)
+    parser.add_argument("--nsfw", help="true/false: Include NSFW websites in search.", required=False)
+    parser.add_argument("--output_filepath", help="string: The filepath to save the results of the search as csv.",
+                        required=False)
+
+    # Parse the command-line arguments
+    args = parser.parse_args()
+
+    # Access the values of the arguments
+    username: str = args.username
+    nsfw: bool = args.nsfw
+    output_filepath: str = args.output_filepath
+
+    # Perform some operation (in this example, we'll just print the input and output paths)
+    print(f"username file: {username}")
+    print(f"nsfw file: {nsfw}")
+    print(f"output_filepath file: {output_filepath}")
+
+def main():
+    cli()
+
+
+if __name__ == "__main__":
+    main()
+
+# env_setup()
+# sites: List[Site] = generate_site_objects()
+# for site in sites:
+#     username = "dogle"
+#     user_found: bool = check_website_for_user(site, username)
+#     site.users_found.append(username)
+#     print(site.user_url.format(username) + " : {}".format(user_found))
