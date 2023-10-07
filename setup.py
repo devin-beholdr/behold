@@ -8,7 +8,8 @@ setup(
     name="behold",
     version="0.1",
     packages=find_packages(),
-    package_data={'behold': ['behold/src/resources/*.json', 'src/config/*.json']},
+    package_data={'behold': ['src/resources/siteList.json', 'src/config/*.json']},
+    include_package_data=True,
     install_requires=[
         required_packages
     ],
