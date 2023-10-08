@@ -72,11 +72,9 @@ def generate_site_objects(nsfw: bool) -> List[Site]:
     """
     config: json = load_config()
     sites_json: json = read_json_file(config["sites_json_filepath"])
-    sites_nsfw_dict = generate_site_nsfw_lookup_dict()
     sites: List[Site] = []
     for site, data in sites_json.items():
         temp_url = data.get("main_url", None)
-        temp_nsfw = sites_nsfw_dict.get(parse_url_domain(temp_url), None)
         try:
             temp_site = Site(
                 name=site,
@@ -85,7 +83,7 @@ def generate_site_objects(nsfw: bool) -> List[Site]:
                 error_url=data.get("error_url", None),
                 error_type=data.get("error_type", None),
                 users_found=False,
-                nsfw=temp_nsfw,
+                nsfw=data.get("nsfw", False),
                 error_message=data.get("error_message", None)
             )
         except pydantic.ValidationError as e:
