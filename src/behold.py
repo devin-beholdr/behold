@@ -165,37 +165,6 @@ def check_website_for_user(site: Site, username: str) -> bool:
         return True
     return False
 
-def main():
-    args: Namespace = cli.cli()
-    username: str = args.username
-    nsfw: bool = cli.parse_nsfw_arg(args.nsfw)
-    threads_arg: int = cli.parse_threads_arg(args.threads)
-    output_filepath: str = cli.parse_filepath_arg(args.output_filepath)
-
-    sites: List[Site] = generate_site_objects(nsfw)
-
-    results_queue: Queue = queue.Queue()
-    results: List = []
-    # Search Websites
-    if threads_arg > 1:
-        threads = []
-        site_groups: List[List[Site]] = split_sites_into_groups(sites=sites,threads=threads_arg)
-        for site_group in site_groups:
-            thread = threading.Thread(target=execute_search, args=(site_group, username, results_queue))
-            threads.append(thread)
-            thread.start()
-        for thread in threads:
-            thread.join()
-    else:
-        sites = execute_search(sites=sites, username=username, results_queue=results_queue)
-    # Collect results
-    while not results_queue.empty():
-        result = results_queue.get()
-        results.append(result)
-    # Store results
-    if output_filepath:
-        generate_search_results_csv(sites, filepath=output_filepath)
-
 
 def generate_search_results_csv(sites: List[Site], filepath: str) -> None:
     site_dict_list: List[dict] = []
@@ -236,6 +205,40 @@ def execute_search(sites: List[Site], username: str, results_queue: Queue) -> Li
         print(temp_result_string)
         results_queue.put(temp_result_string)
     return sites
+
+
+def main():
+    args: Namespace = cli.cli()
+    username: str = args.username
+    nsfw: bool = cli.parse_nsfw_arg(args.nsfw)
+    threads_arg: int = cli.parse_threads_arg(args.threads)
+    output_filepath: str = cli.parse_filepath_arg(args.output_filepath)
+
+    sites: List[Site] = generate_site_objects(nsfw)
+
+    results_queue: Queue = queue.Queue()
+    results: List = []
+    # Search Websites
+    if threads_arg > 1:
+        threads = []
+        site_groups: List[List[Site]] = split_sites_into_groups(sites=sites,threads=threads_arg)
+        for site_group in site_groups:
+            thread = threading.Thread(target=execute_search, args=(site_group, username, results_queue))
+            threads.append(thread)
+            thread.start()
+        for thread in threads:
+            thread.join()
+    else:
+        sites = execute_search(sites=sites, username=username, results_queue=results_queue)
+    # Collect results
+    while not results_queue.empty():
+        result = results_queue.get()
+        results.append(result)
+    # Store results
+    if output_filepath:
+        generate_search_results_csv(sites, filepath=output_filepath)
+
+
 
 if __name__ == "__main__":
     env_setup()
