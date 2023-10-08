@@ -4,3 +4,5 @@ venv
 behold.egg-info
 build
 temp.csv
+.DS_Store
+__pycache__
