@@ -11,7 +11,7 @@ import requests
 from typing import List, Match
 from argparse import Namespace
 
-from src.models.site import Site
+from models.site import Site
 import cli
 def env_setup() -> None:
     os.environ['CONFIG_FILEPATH'] = "config/config.json"
