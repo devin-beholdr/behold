@@ -10,7 +10,7 @@ responsibility for the misuse of this tool.
 Installs the requirements for the script.
 
     git clone https://github.com/devinogle/Behold.git
-    cd behold && sudo pip install -r requirements.txt
+    cd behold/src/ && sudo pip install -r requirements.txt
     python3 behold.py --h
 
 # Options
