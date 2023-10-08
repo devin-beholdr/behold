@@ -171,7 +171,7 @@ def generate_search_results_csv(sites: List[Site], filepath: str) -> None:
 
     fieldnames = site_dict_list[0].keys()
 
-    with open(filepath, mode="w", newline="") as csv_file:
+    with open(filepath, mode="w", newline="", encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
 
